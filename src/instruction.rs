@@ -20,7 +20,8 @@ impl FromStr for Instruction {
     type Err = &'static str;
 
     fn from_str(insn: &str) -> Result<Instruction, Self::Err> {
-        let words: Vec<&str> = insn.split(' ').collect();
+        //Nightly: let words: Vec<&str> = insn.split_whitespace().collect();
+        let words: Vec<&str> = insn.split(' ').filter(|s| *s != "").collect();
 
         match words.len() {
             1 => match words[0] {
@@ -75,7 +76,7 @@ fn instruction_from_str() {
     assert_eq!(Instruction::from_str("JEQ LOC").unwrap_err(), BAD_OPCODE_ERR);
 
     assert_eq!(i("MOV UP DOWN"),    Instruction::MOV { src: Operand::Port(Port::Up), dst: Operand::Port(Port::Down) });
-    //assert_eq!(i("MOV  UP  DOWN"), Instruction::MOV { src: Operand::Port(Port::Up), dst: Operand::Port(Port::Down) });
+    assert_eq!(i("MOV  UP  DOWN"),  Instruction::MOV { src: Operand::Port(Port::Up), dst: Operand::Port(Port::Down) });
     assert_eq!(i("MOV UP ACC"),     Instruction::MOV { src: Operand::Port(Port::Up), dst: Operand::ACC });
     assert_eq!(i("MOV ACC ACC"),    Instruction::MOV { src: Operand::ACC, dst: Operand::ACC });
     assert_eq!(Instruction::from_str("MV UP ACC").unwrap_err(), BAD_OPCODE_ERR);
