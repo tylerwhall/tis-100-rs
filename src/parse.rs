@@ -3,7 +3,6 @@ extern crate regex;
 use self::regex::Regex;
 use std::str::FromStr;
 use std::ascii::AsciiExt;
-use instruction;
 use instruction::{Instruction, Label};
 
 #[derive(Debug, PartialEq)]
@@ -38,6 +37,8 @@ impl FromStr for Line {
 
 #[test]
 fn test_parse_line() {
+    use instruction;
+
     fn l(s: &str) -> Result<Line, &'static str> {
         println!("{}", s);
         Line::from_str(s)
@@ -49,4 +50,14 @@ fn test_parse_line() {
     assert_eq!(l("").unwrap(), Line { label: None, insn: None });
     assert_eq!(l("SUB b c").unwrap_err(), instruction::BAD_OPCODE_ERR);
     assert_eq!(l("a b c d").unwrap_err(), instruction::NUM_ARGS_ERR);
+}
+
+pub fn parse_program(p: &str) -> Result<Vec<Line>, &'static str> {
+    let line_strs: Vec<&str> = p.lines().collect();
+    let mut lines = Vec::with_capacity(line_strs.len());
+
+    for line_str in line_strs {
+        lines.push(try!(Line::from_str(line_str)));
+    }
+    Ok(lines)
 }
