@@ -13,8 +13,8 @@ pub enum Instruction {
     JRO { dst: Operand },
 }
 
-static BAD_OPCODE_ERR: &'static str = "Bad opcode for # of arguments";
-static NUM_ARGS_ERR: &'static str = "Wrong number of arguments";
+pub static BAD_OPCODE_ERR: &'static str = "Bad opcode for # of arguments";
+pub static NUM_ARGS_ERR: &'static str = "Wrong number of arguments";
 
 impl FromStr for Instruction {
     type Err = &'static str;
