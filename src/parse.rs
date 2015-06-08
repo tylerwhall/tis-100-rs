@@ -36,23 +36,6 @@ impl FromStr for Line {
     }
 }
 
-#[test]
-fn test_parse_line() {
-    use instruction;
-
-    fn l(s: &str) -> Result<Line, &'static str> {
-        println!("{}", s);
-        Line::from_str(s)
-    }
-    assert_eq!(l("foo: NOP").unwrap(), Line { label: Some("FOO".to_string()), insn: Some(Instruction::NOP) });
-    /* Label with : has questionable utility */
-    assert_eq!(l("foo:: NOP").unwrap(), Line { label: Some("FOO:".to_string()), insn: Some(Instruction::NOP) });
-    assert_eq!(l(" NOP ").unwrap(), Line { label: None, insn: Some(Instruction::NOP) });
-    assert_eq!(l("").unwrap(), Line { label: None, insn: None });
-    assert_eq!(l("SUB b c").unwrap_err(), instruction::BAD_OPCODE_ERR);
-    assert_eq!(l("a b c d").unwrap_err(), instruction::NUM_ARGS_ERR);
-}
-
 fn parse_program(p: &str) -> Result<Vec<Line>, &'static str> {
     let line_strs: Vec<&str> = p.lines().collect();
     let mut lines = Vec::with_capacity(line_strs.len());
@@ -144,12 +127,36 @@ pub fn parse(p: &str) -> Result<Executable, &'static str> {
     Ok(executable)
 }
 
-#[test]
-fn test_parse() {
-    let e1 = parse("TOP:\nNOP\nJMP TOP").unwrap();
-    let e2 = parse("\nTOP:NOP\nJMP TOP").unwrap();
-    assert_eq!(e1.lines.len(), e2.lines.len());
-    for (l1, l2) in e1.lines.iter().zip(e2.lines.iter()) {
-        assert_eq!(l1.insn, l2.insn);
+#[cfg(test)]
+mod tests {
+    use super::{Line, parse};
+    use std::str::FromStr;
+
+    #[test]
+    fn test_parse_line() {
+        use instruction;
+        use instruction::Instruction;
+
+        fn l(s: &str) -> Result<Line, &'static str> {
+            println!("{}", s);
+            Line::from_str(s)
+        }
+        assert_eq!(l("foo: NOP").unwrap(), Line { label: Some("FOO".to_string()), insn: Some(Instruction::NOP) });
+        /* Label with : has questionable utility */
+        assert_eq!(l("foo:: NOP").unwrap(), Line { label: Some("FOO:".to_string()), insn: Some(Instruction::NOP) });
+        assert_eq!(l(" NOP ").unwrap(), Line { label: None, insn: Some(Instruction::NOP) });
+        assert_eq!(l("").unwrap(), Line { label: None, insn: None });
+        assert_eq!(l("SUB b c").unwrap_err(), instruction::BAD_OPCODE_ERR);
+        assert_eq!(l("a b c d").unwrap_err(), instruction::NUM_ARGS_ERR);
+    }
+
+    #[test]
+    fn test_parse() {
+        let e1 = parse("TOP:\nNOP\nJMP TOP").unwrap();
+        let e2 = parse("\nTOP:NOP\nJMP TOP").unwrap();
+        assert_eq!(e1.lines.len(), e2.lines.len());
+        for (l1, l2) in e1.lines.iter().zip(e2.lines.iter()) {
+            assert_eq!(l1.insn, l2.insn);
+        }
     }
 }
