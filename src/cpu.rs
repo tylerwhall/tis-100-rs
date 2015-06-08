@@ -1,5 +1,5 @@
 use parse::Executable;
-use instruction::{Instruction, Condition};
+use instruction::{Instruction, Condition, Operand, Port};
 
 struct Cpu {
     pc: i32,
@@ -25,8 +25,14 @@ impl Cpu {
         let advance_pc = match *self.executable.insn_at(self.pc()) {
             Instruction::NOP => true,
             Instruction::MOV { ref src, ref dst } => {
-                panic!("Unimplemented");
-                false
+                match self.get_operand(src) {
+                    Some(i) => match dst {
+                            &Operand::Lit(_) => panic!("Cannot store to a literal"),
+                            &Operand::ACC => { self.acc = i; true },
+                            &Operand::Port(ref p) => self.write_port(p.to_owned(), i),
+                    },
+                    None => false
+                }
             },
             Instruction::SWP => {
                 let tmp = self.acc;
@@ -39,12 +45,16 @@ impl Cpu {
                 true
             },
             Instruction::ADD { ref addend } => {
-                panic!("Unimplemented");
-                false
+                match self.get_operand(addend) {
+                    Some(i) => { self.acc += i; true },
+                    None => false
+                }
             },
             Instruction::SUB { ref subtrahend } => {
-                panic!("Unimplemented");
-                false
+                match self.get_operand(subtrahend) {
+                    Some(i) => { self.acc -= i; true },
+                    None => false
+                }
             },
             Instruction::NEG => {
                 self.acc = -self.acc;
@@ -65,8 +75,10 @@ impl Cpu {
                 }
             },
             Instruction::JRO { ref dst } => {
-                panic!("Unimplemented");
-                false
+                match self.get_operand(dst) {
+                    Some(i) => { self.pc += i; true },
+                    None => false
+                }
             },
         };
         if advance_pc {
@@ -84,8 +96,20 @@ impl Cpu {
         self.executable.srcline_at(self.pc())
     }
 
-    fn read_port(&self) -> Option<i32> {
-        Some(0)
+    fn read_port(&self, port: Port) -> Option<i32> {
+        panic!("Unimplemented port read");
+    }
+
+    fn write_port(&self, port: Port, val: i32) -> bool {
+        panic!("Unimplemented port write");
+    }
+
+    fn get_operand(&self, op: &Operand) -> Option<i32> {
+        match op {
+            &Operand::Lit(i) => Some(i),
+            &Operand::ACC => Some(self.acc),
+            &Operand::Port(ref p) => self.read_port(p.to_owned()),
+        }
     }
 
     fn pc(&self) -> usize {
@@ -110,5 +134,36 @@ mod tests {
         cpu.execute();
         assert_eq!(cpu.current_line(), 1);
         cpu.execute();
+    }
+
+    #[test]
+    fn test_mov() {
+        let e = parse::parse("MOV 10 ACC\nNOP").unwrap();
+        let mut cpu = Cpu::new(e);
+        assert_eq!(cpu.current_line(), 0);
+        assert_eq!(cpu.acc, 0);
+        cpu.execute();
+        assert_eq!(cpu.current_line(), 1);
+        assert_eq!(cpu.acc, 10);
+    }
+
+    #[test]
+    fn test_add_sub() {
+        let e = parse::parse("ADD 10\nADD -20\nSUB 10\nSUB -30").unwrap();
+        let mut cpu = Cpu::new(e);
+        assert_eq!(cpu.current_line(), 0);
+        assert_eq!(cpu.acc, 0);
+        cpu.execute();
+        assert_eq!(cpu.current_line(), 1);
+        assert_eq!(cpu.acc, 10);
+        cpu.execute();
+        assert_eq!(cpu.current_line(), 2);
+        assert_eq!(cpu.acc, -10);
+        cpu.execute();
+        assert_eq!(cpu.current_line(), 3);
+        assert_eq!(cpu.acc, -20);
+        cpu.execute();
+        assert_eq!(cpu.current_line(), 0);
+        assert_eq!(cpu.acc, 10);
     }
 }

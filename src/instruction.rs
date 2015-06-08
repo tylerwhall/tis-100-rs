@@ -90,7 +90,7 @@ fn instruction_from_str() {
     assert_eq!(Instruction::from_str("1 2 3 4").unwrap_err(), NUM_ARGS_ERR);
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Port {
     Up,
     Down,
