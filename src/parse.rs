@@ -75,6 +75,28 @@ pub struct Executable {
     labels: HashMap<Label, u32>,
 }
 
+impl Executable {
+    pub fn line_at(&self, line: usize) -> &InstructionLine {
+        &self.lines[line]
+    }
+
+    pub fn insn_at(&self, line: usize) -> &Instruction {
+        &self.line_at(line).insn
+    }
+
+    pub fn srcline_at(&self, line: usize) -> u32 {
+        self.line_at(line).srcline
+    }
+
+    pub fn len(&self) -> usize {
+        self.lines.len()
+    }
+
+    pub fn label_line(&self, label: &str) -> u32 {
+        self.labels[label]
+    }
+}
+
 pub fn parse(p: &str) -> Result<Executable, &'static str> {
     let mut lines = try!(parse_program(p));
 

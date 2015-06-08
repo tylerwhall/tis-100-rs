@@ -70,6 +70,7 @@ fn instruction_from_str() {
     assert_eq!(i("SUB 10"), Instruction::SUB { subtrahend: Operand::Lit(10) });
     assert_eq!(i("JMP LOC"), Instruction::J { cond: Condition::Unconditional,   dst: "LOC".to_string() });
     assert_eq!(i("JEZ LOC"), Instruction::J { cond: Condition::Ez,              dst: "LOC".to_string() });
+    assert_eq!(i("JNZ LOC"), Instruction::J { cond: Condition::Nz,              dst: "LOC".to_string() });
     assert_eq!(i("JGZ LOC"), Instruction::J { cond: Condition::Gz,              dst: "LOC".to_string() });
     assert_eq!(i("JLZ LOC"), Instruction::J { cond: Condition::Lz,              dst: "LOC".to_string() });
     assert_eq!(i("JRO 1"), Instruction::JRO { dst: Operand::Lit(1) });

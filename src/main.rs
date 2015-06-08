@@ -1,5 +1,6 @@
 pub mod instruction;
 pub mod parse;
+pub mod cpu;
 
 fn main() {
     let program = parse::parse("TOP:\n NOP\nNOP\nJMP TOP\n").unwrap();
