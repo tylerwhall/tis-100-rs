@@ -59,37 +59,6 @@ impl FromStr for Instruction {
     }
 }
 
-#[test]
-fn instruction_from_str() {
-    fn i(s: &str) -> Instruction {
-        Instruction::from_str(s).unwrap()
-    }
-    assert_eq!(i("NOP"), Instruction::NOP);
-    assert_eq!(i("SWP"), Instruction::SWP);
-    assert_eq!(i("SAV"), Instruction::SAV);
-    assert_eq!(i("NEG"), Instruction::NEG);
-    assert_eq!(Instruction::from_str("BOGUS").unwrap_err(), BAD_OPCODE_ERR);
-
-    assert_eq!(i("ADD 10"), Instruction::ADD { addend: Operand::Lit(10) });
-    assert_eq!(i("SUB 10"), Instruction::SUB { subtrahend: Operand::Lit(10) });
-    assert_eq!(i("JMP LOC"), Instruction::J { cond: Condition::Unconditional,   dst: "LOC".to_string() });
-    assert_eq!(i("JEZ LOC"), Instruction::J { cond: Condition::Ez,              dst: "LOC".to_string() });
-    assert_eq!(i("JNZ LOC"), Instruction::J { cond: Condition::Nz,              dst: "LOC".to_string() });
-    assert_eq!(i("JGZ LOC"), Instruction::J { cond: Condition::Gz,              dst: "LOC".to_string() });
-    assert_eq!(i("JLZ LOC"), Instruction::J { cond: Condition::Lz,              dst: "LOC".to_string() });
-    assert_eq!(i("JRO 1"), Instruction::JRO { dst: Operand::Lit(1) });
-    assert_eq!(Instruction::from_str("JEQ LOC").unwrap_err(), BAD_OPCODE_ERR);
-
-    assert_eq!(i("MOV UP DOWN"),    Instruction::MOV { src: Operand::Port(Port::Up), dst: Operand::Port(Port::Down) });
-    assert_eq!(i("MOV  UP  DOWN"),  Instruction::MOV { src: Operand::Port(Port::Up), dst: Operand::Port(Port::Down) });
-    assert_eq!(i("MOV UP ACC"),     Instruction::MOV { src: Operand::Port(Port::Up), dst: Operand::ACC });
-    assert_eq!(i("MOV ACC ACC"),    Instruction::MOV { src: Operand::ACC, dst: Operand::ACC });
-    assert_eq!(Instruction::from_str("MV UP ACC").unwrap_err(), BAD_OPCODE_ERR);
-    assert_eq!(Instruction::from_str("MOV UP 10").unwrap_err(), LIT_DST_ERR);
-
-    assert_eq!(Instruction::from_str("1 2 3 4").unwrap_err(), NUM_ARGS_ERR);
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum Port {
     Up,
@@ -110,15 +79,6 @@ impl FromStr for Port {
             _ => Err("bad port"),
         }
     }
-}
-
-#[test]
-fn port_from_str() {
-    assert_eq!(Port::from_str("UP").unwrap(),   Port::Up);
-    assert_eq!(Port::from_str("DOWN").unwrap(), Port::Down);
-    assert_eq!(Port::from_str("LEFT").unwrap(), Port::Left);
-    assert_eq!(Port::from_str("RIGHT").unwrap(), Port::Right);
-    assert_eq!(Port::from_str("OTHER").unwrap_err(), "bad port");
 }
 
 #[derive(Debug, PartialEq)]
@@ -144,14 +104,6 @@ impl FromStr for Operand {
     }
 }
 
-#[test]
-fn operand_from_str() {
-    assert_eq!(Operand::from_str("ACC").unwrap(), Operand::ACC);
-    assert_eq!(Operand::from_str("32").unwrap(), Operand::Lit(32));
-    assert_eq!(Operand::from_str("UP").unwrap(), Operand::Port(Port::Up));
-    assert_eq!(Operand::from_str("FOO").unwrap_err(), "Invalid operand");
-}
-
 #[derive(Debug, PartialEq)]
 pub enum Condition {
     Unconditional,
@@ -162,3 +114,58 @@ pub enum Condition {
 }
 
 pub type Label = String;
+
+#[cfg(test)]
+mod tests {
+    use super::{Condition, Instruction, Operand, Port};
+    use super::{BAD_OPCODE_ERR,NUM_ARGS_ERR, LIT_DST_ERR};
+    use std::str::FromStr;
+
+    #[test]
+    fn port_from_str() {
+        assert_eq!(Port::from_str("UP").unwrap(),   Port::Up);
+        assert_eq!(Port::from_str("DOWN").unwrap(), Port::Down);
+        assert_eq!(Port::from_str("LEFT").unwrap(), Port::Left);
+        assert_eq!(Port::from_str("RIGHT").unwrap(), Port::Right);
+        assert_eq!(Port::from_str("OTHER").unwrap_err(), "bad port");
+    }
+
+    #[test]
+    fn operand_from_str() {
+        assert_eq!(Operand::from_str("ACC").unwrap(), Operand::ACC);
+        assert_eq!(Operand::from_str("32").unwrap(), Operand::Lit(32));
+        assert_eq!(Operand::from_str("UP").unwrap(), Operand::Port(Port::Up));
+        assert_eq!(Operand::from_str("FOO").unwrap_err(), "Invalid operand");
+    }
+
+    #[test]
+    fn instruction_from_str() {
+        fn i(s: &str) -> Instruction {
+            Instruction::from_str(s).unwrap()
+        }
+        assert_eq!(i("NOP"), Instruction::NOP);
+        assert_eq!(i("SWP"), Instruction::SWP);
+        assert_eq!(i("SAV"), Instruction::SAV);
+        assert_eq!(i("NEG"), Instruction::NEG);
+        assert_eq!(Instruction::from_str("BOGUS").unwrap_err(), BAD_OPCODE_ERR);
+
+        assert_eq!(i("ADD 10"), Instruction::ADD { addend: Operand::Lit(10) });
+        assert_eq!(i("SUB 10"), Instruction::SUB { subtrahend: Operand::Lit(10) });
+        assert_eq!(i("JMP LOC"), Instruction::J { cond: Condition::Unconditional,   dst: "LOC".to_string() });
+        assert_eq!(i("JEZ LOC"), Instruction::J { cond: Condition::Ez,              dst: "LOC".to_string() });
+        assert_eq!(i("JNZ LOC"), Instruction::J { cond: Condition::Nz,              dst: "LOC".to_string() });
+        assert_eq!(i("JGZ LOC"), Instruction::J { cond: Condition::Gz,              dst: "LOC".to_string() });
+        assert_eq!(i("JLZ LOC"), Instruction::J { cond: Condition::Lz,              dst: "LOC".to_string() });
+        assert_eq!(i("JRO 1"), Instruction::JRO { dst: Operand::Lit(1) });
+        assert_eq!(Instruction::from_str("JEQ LOC").unwrap_err(), BAD_OPCODE_ERR);
+
+        assert_eq!(i("MOV UP DOWN"),    Instruction::MOV { src: Operand::Port(Port::Up), dst: Operand::Port(Port::Down) });
+        assert_eq!(i("MOV  UP  DOWN"),  Instruction::MOV { src: Operand::Port(Port::Up), dst: Operand::Port(Port::Down) });
+        assert_eq!(i("MOV UP ACC"),     Instruction::MOV { src: Operand::Port(Port::Up), dst: Operand::ACC });
+        assert_eq!(i("MOV ACC ACC"),    Instruction::MOV { src: Operand::ACC, dst: Operand::ACC });
+        assert_eq!(Instruction::from_str("MV UP ACC").unwrap_err(), BAD_OPCODE_ERR);
+        assert_eq!(Instruction::from_str("MOV UP 10").unwrap_err(), LIT_DST_ERR);
+
+        assert_eq!(Instruction::from_str("1 2 3 4").unwrap_err(), NUM_ARGS_ERR);
+    }
+}
