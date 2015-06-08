@@ -133,20 +133,14 @@ impl FromStr for Operand {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s == "ACC" {
-            return Ok(Operand::ACC);
+            Ok(Operand::ACC)
+        } else if let Ok(as_int) = i32::from_str(s) {
+            Ok(Operand::Lit(as_int))
+        } else if let Ok(as_port) = Port::from_str(s) {
+            Ok(Operand::Port(as_port))
+        } else {
+            Err("Invalid operand")
         }
-
-        let as_int = i32::from_str(s);
-        if as_int.is_ok() {
-            return Ok(Operand::Lit(as_int.unwrap()));
-        }
-
-        let as_port = Port::from_str(s);
-        if as_port.is_ok() {
-            return Ok(Operand::Port(as_port.unwrap()));
-        }
-
-        Err("Invalid operand")
     }
 }
 
