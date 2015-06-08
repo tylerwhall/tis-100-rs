@@ -15,6 +15,7 @@ pub enum Instruction {
 
 pub static BAD_OPCODE_ERR: &'static str = "Bad opcode for # of arguments";
 pub static NUM_ARGS_ERR: &'static str = "Wrong number of arguments";
+pub static LIT_DST_ERR: &'static str = "Literal not allowed as dst operand";
 
 impl FromStr for Instruction {
     type Err = &'static str;
@@ -45,8 +46,11 @@ impl FromStr for Instruction {
             },
 
             3 => match words[0] {
-                "MOV" => Operand::from_str(words[1]).and_then(|s| Operand::from_str(words[2]).map(|d| (s, d)))
-                            .map(|(s, d)| Instruction::MOV { src: s, dst: d }),
+                "MOV" => Operand::from_str(words[1]).and_then(|s| Operand::from_str(words[2])
+                    .and_then(|d| match d {
+                        Operand::Lit(_) => Err(LIT_DST_ERR),
+                        _ => Ok(Instruction::MOV { src: s, dst: d })
+                        })),
                 _ => Err(BAD_OPCODE_ERR),
             },
 
@@ -81,6 +85,7 @@ fn instruction_from_str() {
     assert_eq!(i("MOV UP ACC"),     Instruction::MOV { src: Operand::Port(Port::Up), dst: Operand::ACC });
     assert_eq!(i("MOV ACC ACC"),    Instruction::MOV { src: Operand::ACC, dst: Operand::ACC });
     assert_eq!(Instruction::from_str("MV UP ACC").unwrap_err(), BAD_OPCODE_ERR);
+    assert_eq!(Instruction::from_str("MOV UP 10").unwrap_err(), LIT_DST_ERR);
 
     assert_eq!(Instruction::from_str("1 2 3 4").unwrap_err(), NUM_ARGS_ERR);
 }
