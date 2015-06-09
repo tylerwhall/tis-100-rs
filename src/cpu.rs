@@ -16,6 +16,7 @@ pub struct CpuPorts {
     down:   GenericPort,
     left:   GenericPort,
     right:  GenericPort,
+    last:   instruction::Port,
 }
 
 impl CpuPorts {
@@ -25,6 +26,7 @@ impl CpuPorts {
             down:   GenericPort::create(port::CpuPort::new()),
             left:   GenericPort::create(port::CpuPort::new()),
             right:  GenericPort::create(port::CpuPort::new()),
+            last:   instruction::Port::Up,
         }
     }
 
@@ -44,7 +46,29 @@ impl CpuPorts {
     }
 
     fn read_port(&mut self, port: instruction::Port) -> Option<i32> {
-        self.match_port(port).read()
+        let last = self.last.to_owned();
+
+        match port {
+            instruction::Port::Any => {
+                let mut ret = None;
+                for port in [instruction::Port::Up,
+                             instruction::Port::Down,
+                             instruction::Port::Left,
+                             instruction::Port::Right].iter() {
+                    ret = self.match_port(port.to_owned()).read();
+                    if let Some(_) = ret {
+                        self.last = port.to_owned();
+                        break;
+                    }
+                }
+                ret
+            },
+            instruction::Port::Last => self.match_port(last).read(),
+            _ => {
+                self.last = port.to_owned();
+                self.match_port(port).read()
+            }
+        }
     }
 }
 
