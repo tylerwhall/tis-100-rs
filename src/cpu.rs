@@ -35,6 +35,7 @@ impl CpuPorts {
             instruction::Port::Down =>  &mut self.down,
             instruction::Port::Left =>  &mut self.left,
             instruction::Port::Right => &mut self.right,
+            _ => panic!("Unimplemented port")
         }
     }
 

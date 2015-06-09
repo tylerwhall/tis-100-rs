@@ -65,6 +65,8 @@ pub enum Port {
     Down,
     Left,
     Right,
+    Any,
+    Last,
 }
 
 impl FromStr for Port {
@@ -72,11 +74,13 @@ impl FromStr for Port {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "UP" => Ok(Port::Up),
-            "DOWN" => Ok(Port::Down),
-            "LEFT" => Ok(Port::Left),
-            "RIGHT" => Ok(Port::Right),
-            _ => Err("bad port"),
+            "UP" =>     Ok(Port::Up),
+            "DOWN" =>   Ok(Port::Down),
+            "LEFT" =>   Ok(Port::Left),
+            "RIGHT" =>  Ok(Port::Right),
+            "ANY" =>    Ok(Port::Any),
+            "LAST" =>   Ok(Port::Last),
+            _ =>        Err("bad port"),
         }
     }
 }
@@ -127,6 +131,8 @@ mod tests {
         assert_eq!(Port::from_str("DOWN").unwrap(), Port::Down);
         assert_eq!(Port::from_str("LEFT").unwrap(), Port::Left);
         assert_eq!(Port::from_str("RIGHT").unwrap(), Port::Right);
+        assert_eq!(Port::from_str("ANY").unwrap(),  Port::Any);
+        assert_eq!(Port::from_str("LAST").unwrap(), Port::Last);
         assert_eq!(Port::from_str("OTHER").unwrap_err(), "bad port");
     }
 
