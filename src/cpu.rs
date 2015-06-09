@@ -28,17 +28,22 @@ impl CpuPorts {
         }
     }
 
-    fn write_port(&mut self, port: instruction::Port, val: i32) -> bool {
+    /// Index ports structure by instruction port enum
+    fn match_port(&mut self, port: instruction::Port) -> &mut GenericPort {
         match port {
-            instruction::Port::Up =>    &self.up,
-            instruction::Port::Down =>  &self.down,
-            instruction::Port::Left =>  &self.left,
-            instruction::Port::Right => &self.right,
-        }.write(val)
+            instruction::Port::Up =>    &mut self.up,
+            instruction::Port::Down =>  &mut self.down,
+            instruction::Port::Left =>  &mut self.left,
+            instruction::Port::Right => &mut self.right,
+        }
+    }
+
+    fn write_port(&mut self, port: instruction::Port, val: i32) -> bool {
+        self.match_port(port).write(val)
     }
 
     fn read_port(&mut self, port: instruction::Port) -> Option<i32> {
-        panic!("Unimplemented port read");
+        self.match_port(port).read()
     }
 }
 
