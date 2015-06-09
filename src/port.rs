@@ -1,11 +1,14 @@
-trait Port {
+use std::rc::Rc;
+use std::cell::RefCell;
+
+pub trait Port {
     fn read(&mut self) -> Option<i32>;
     fn write(&mut self, val: i32) -> bool;
 }
 
 /// The producer, or the output side of a CPU.
 #[derive(Default)]
-struct CpuPort {
+pub struct CpuPort {
     val: Option<i32>
 }
 
@@ -32,6 +35,33 @@ impl Port for CpuPort {
         }
     }
 }
+
+impl CpuPort {
+    pub fn new() -> Self {
+        Default::default()
+    }
+}
+
+pub struct GenericPort(Rc<RefCell<Box<Port>>>);
+
+impl GenericPort {
+    pub fn create<T: Port + 'static>(x: T) -> GenericPort {
+        GenericPort(Rc::new(RefCell::new(Box::new(x) as Box<Port>)))
+    }
+
+    pub fn read(&self) -> Option<i32> {
+        self.0.borrow_mut().read()
+    }
+
+    pub fn write(&self, val: i32) -> bool {
+        self.0.borrow_mut().write(val)
+    }
+
+    pub fn clone(&self) -> GenericPort {
+        GenericPort(self.0.clone())
+    }
+}
+
 
 #[cfg(test)]
 mod tests {

@@ -1,5 +1,8 @@
 use parse::Executable;
-use instruction::{Instruction, Condition, Operand, Port};
+use instruction;
+use instruction::{Instruction, Condition, Operand};
+use port;
+use port::GenericPort;
 
 #[derive(Default)]
 pub struct CpuState {
@@ -8,14 +11,61 @@ pub struct CpuState {
     pc: i32,
 }
 
+pub struct CpuPorts {
+    up:     GenericPort,
+    down:   GenericPort,
+    left:   GenericPort,
+    right:  GenericPort,
+}
+
+impl CpuPorts {
+    fn new() -> Self {
+        CpuPorts {
+            up:     GenericPort::create(port::CpuPort::new()),
+            down:   GenericPort::create(port::CpuPort::new()),
+            left:   GenericPort::create(port::CpuPort::new()),
+            right:  GenericPort::create(port::CpuPort::new()),
+        }
+    }
+
+    fn write_port(&mut self, port: instruction::Port, val: i32) -> bool {
+        match port {
+            instruction::Port::Up =>    &self.up,
+            instruction::Port::Down =>  &self.down,
+            instruction::Port::Left =>  &self.left,
+            instruction::Port::Right => &self.right,
+        }.write(val)
+    }
+
+    fn read_port(&mut self, port: instruction::Port) -> Option<i32> {
+        panic!("Unimplemented port read");
+    }
+}
+
 pub struct Cpu {
-    pub state: CpuState,
+    state:      CpuState,
+    outports:   CpuPorts,
+    inports:    CpuPorts,
     executable: Executable,
+}
+
+fn get_operand(state: &CpuState, ports: &mut CpuPorts, op: &Operand) -> Option<i32> {
+    match op {
+        &Operand::Lit(i) => Some(i),
+        &Operand::ACC => Some(state.acc),
+        &Operand::Port(ref p) => ports.read_port(p.to_owned()),
+    }
 }
 
 impl Cpu {
     pub fn new(executable: Executable) -> Cpu {
+        Self::with_ports(CpuPorts::new(), executable)
+    }
+
+    pub fn with_ports(out: CpuPorts, executable: Executable) -> Cpu {
         Cpu { state: Default::default(),
+              outports: out,
+              inports: CpuPorts::new(),
               executable: executable,
         }
     }
@@ -28,11 +78,11 @@ impl Cpu {
         let advance_pc = match *self.executable.insn_at(self.pc()) {
             Instruction::NOP => true,
             Instruction::MOV { ref src, ref dst } => {
-                match self.get_operand(src) {
+                match get_operand(&self.state, &mut self.inports, src) {
                     Some(i) => match dst {
                             &Operand::Lit(_) => panic!("Cannot store to a literal"),
                             &Operand::ACC => { self.state.acc = i; true },
-                            &Operand::Port(ref p) => self.write_port(p.to_owned(), i),
+                            &Operand::Port(ref p) => self.outports.write_port(p.to_owned(), i),
                     },
                     None => false
                 }
@@ -48,13 +98,13 @@ impl Cpu {
                 true
             },
             Instruction::ADD { ref addend } => {
-                match self.get_operand(addend) {
+                match get_operand(&self.state, &mut self.inports, addend) {
                     Some(i) => { self.state.acc += i; true },
                     None => false
                 }
             },
             Instruction::SUB { ref subtrahend } => {
-                match self.get_operand(subtrahend) {
+                match get_operand(&self.state, &mut self.inports, subtrahend) {
                     Some(i) => { self.state.acc -= i; true },
                     None => false
                 }
@@ -78,7 +128,7 @@ impl Cpu {
                 }
             },
             Instruction::JRO { ref dst } => {
-                match self.get_operand(dst) {
+                match get_operand(&self.state, &mut self.inports, dst) {
                     Some(i) => { self.state.pc += i; true },
                     None => false
                 }
@@ -99,22 +149,6 @@ impl Cpu {
         self.executable.srcline_at(self.pc())
     }
 
-    fn read_port(&self, port: Port) -> Option<i32> {
-        panic!("Unimplemented port read");
-    }
-
-    fn write_port(&self, port: Port, val: i32) -> bool {
-        panic!("Unimplemented port write");
-    }
-
-    fn get_operand(&self, op: &Operand) -> Option<i32> {
-        match op {
-            &Operand::Lit(i) => Some(i),
-            &Operand::ACC => Some(self.state.acc),
-            &Operand::Port(ref p) => self.read_port(p.to_owned()),
-        }
-    }
-
     fn pc(&self) -> usize {
         self.state.pc as usize
     }
@@ -122,7 +156,8 @@ impl Cpu {
 
 #[cfg(test)]
 mod tests {
-    use super::Cpu;
+    use super::{Cpu, CpuPorts};
+    use port::Port;
     use parse;
 
     #[test]
@@ -168,5 +203,23 @@ mod tests {
         cpu.execute();
         assert_eq!(cpu.current_line(), 0);
         assert_eq!(cpu.state.acc, 10);
+    }
+
+    #[test]
+    fn test_ports() {
+        let e = parse::parse("MOV 10 DOWN").unwrap();
+        let mut cpu = Cpu::new(e);
+        cpu.execute();
+        assert_eq!(cpu.outports.down.read().unwrap(), 10);
+    }
+
+    #[test]
+    fn port_borrow() {
+        let e = parse::parse("MOV 10 DOWN").unwrap();
+        let ports = CpuPorts::new();
+        let down = ports.down.clone();
+        let mut cpu = Cpu::with_ports(ports, e);
+        cpu.execute();
+        assert_eq!(down.read().unwrap(), 10);
     }
 }
