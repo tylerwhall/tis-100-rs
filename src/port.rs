@@ -35,6 +35,24 @@ impl CpuWritePorts {
         }
     }
 
+    fn set_all(&self, val: Option<i32>) {
+        self.up.set(val);
+        self.down.set(val);
+        self.left.set(val);
+        self.right.set(val);
+    }
+
+    /// Returns true if a reader has consumed any port
+    fn write_any_finished(&self) -> bool {
+        match self.up.get()
+            .or(self.down.get())
+            .or(self.left.get())
+            .or(self.right.get()) {
+            Some(_) => false,
+            None => true,
+        }
+    }
+
     pub fn get_read_port(&self, p: instruction::Port) -> &ReadPort {
         self.get_port(p)
     }
@@ -53,7 +71,7 @@ impl CpuWritePorts {
     }
 }
 
-impl<'a> ReadPort for Cell<Option<i32>> {
+impl ReadPort for Cell<Option<i32>> {
     /// Read from the CPU's output
     ///
     /// Returns None if the port is empty
