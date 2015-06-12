@@ -2,7 +2,7 @@ use parse::Executable;
 use instruction;
 use instruction::{Instruction, Condition, Operand};
 use port;
-use port::GenericPort;
+use port::{CpuWritePorts, GenericPort};
 
 #[derive(Default)]
 pub struct CpuState {
@@ -41,10 +41,6 @@ impl CpuPorts {
         }
     }
 
-    fn write_port(&mut self, port: instruction::Port, val: i32) -> bool {
-        self.match_port(port).write(val)
-    }
-
     fn read_port(&mut self, port: instruction::Port) -> Option<i32> {
         let last = self.last.to_owned();
 
@@ -72,9 +68,9 @@ impl CpuPorts {
     }
 }
 
-pub struct Cpu {
+pub struct Cpu<'a> {
     state:      CpuState,
-    outports:   CpuPorts,
+    outports:   &'a CpuWritePorts,
     inports:    CpuPorts,
     executable: Executable,
 }
@@ -87,17 +83,15 @@ fn get_operand(state: &CpuState, ports: &mut CpuPorts, op: &Operand) -> Option<i
     }
 }
 
-impl Cpu {
-    pub fn new(executable: Executable) -> Cpu {
-        Self::with_ports(CpuPorts::new(), executable)
-    }
-
-    pub fn with_ports(out: CpuPorts, executable: Executable) -> Cpu {
-        Cpu { state: Default::default(),
-              outports: out,
-              inports: CpuPorts::new(),
-              executable: executable,
-        }
+impl<'a> Cpu<'a> {
+    pub fn new(executable: Executable, ports: &'a CpuWritePorts) -> Cpu<'a>{
+        let cpu = Cpu {
+            state: Default::default(),
+            outports: ports,
+            inports: CpuPorts::new(),
+            executable: executable,
+        };
+        cpu
     }
 
     pub fn execute(&mut self) -> bool {
@@ -187,13 +181,15 @@ impl Cpu {
 #[cfg(test)]
 mod tests {
     use super::{Cpu, CpuPorts};
-    use port::Port;
+    use instruction;
+    use port::{CpuWritePorts, Port};
     use parse;
 
     #[test]
     fn test_cpu_wrapping() {
         let e = parse::parse("TOP: NOP\nNOP").unwrap();
-        let mut cpu = Cpu::new(e);
+        let ports: CpuWritePorts = Default::default();
+        let mut cpu = Cpu::new(e, &ports);
         assert_eq!(cpu.current_line(), 0);
         cpu.execute();
         assert_eq!(cpu.current_line(), 1);
@@ -207,7 +203,8 @@ mod tests {
     #[test]
     fn test_mov() {
         let e = parse::parse("MOV 10 ACC\nNOP").unwrap();
-        let mut cpu = Cpu::new(e);
+        let ports: CpuWritePorts = Default::default();
+        let mut cpu = Cpu::new(e, &ports);
         assert_eq!(cpu.current_line(), 0);
         assert_eq!(cpu.state.acc, 0);
         cpu.execute();
@@ -218,7 +215,8 @@ mod tests {
     #[test]
     fn test_add_sub() {
         let e = parse::parse("ADD 10\nADD -20\nSUB 10\nSUB -30").unwrap();
-        let mut cpu = Cpu::new(e);
+        let ports: CpuWritePorts = Default::default();
+        let mut cpu = Cpu::new(e, &ports);
         assert_eq!(cpu.current_line(), 0);
         assert_eq!(cpu.state.acc, 0);
         cpu.execute();
@@ -238,17 +236,18 @@ mod tests {
     #[test]
     fn test_ports() {
         let e = parse::parse("MOV 10 DOWN").unwrap();
-        let mut cpu = Cpu::new(e);
+        let ports: CpuWritePorts = Default::default();
+        let mut cpu = Cpu::new(e, &ports);
         cpu.execute();
-        assert_eq!(cpu.outports.down.read().unwrap(), 10);
+        assert_eq!(cpu.outports.get_read_port(instruction::Port::Down).read().unwrap(), 10);
     }
 
     #[test]
     fn port_borrow() {
         let e = parse::parse("MOV 10 DOWN").unwrap();
-        let ports = CpuPorts::new();
-        let down = ports.down.clone();
-        let mut cpu = Cpu::with_ports(ports, e);
+        let ports = CpuWritePorts::new();
+        let down = ports.get_read_port(instruction::Port::Down);
+        let mut cpu = Cpu::new(e, &ports);
         cpu.execute();
         assert_eq!(down.read().unwrap(), 10);
     }
