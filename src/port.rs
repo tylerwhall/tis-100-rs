@@ -42,6 +42,20 @@ impl CpuWritePorts {
         self.right.set(val);
     }
 
+    /// Read from the CPU's output
+    ///
+    /// Returns None if the port is empty
+    fn read(&self, port: instruction::Port) -> Option<i32> {
+        let ret = self.get_port(port).get();
+        if let Some(_) = ret {
+            /* If the read is successful, clear all pending writes from the CPU.
+             * This works for the write ANY case, but also works for a write to a
+             * specific port because only one pending write is allowed at once */
+            self.set_all(None);
+        }
+        ret
+    }
+
     /// Returns true if a reader has consumed any port
     fn write_any_finished(&self) -> bool {
         match self.up.get()
@@ -53,8 +67,8 @@ impl CpuWritePorts {
         }
     }
 
-    pub fn get_read_port(&self, p: instruction::Port) -> &ReadPort {
-        self.get_port(p)
+    pub fn get_read_port(&self, p: instruction::Port) -> CpuWritePortsReader {
+        CpuWritePortsReader::new(self, p)
     }
 
     /// Store from the CPU into the port
@@ -71,15 +85,27 @@ impl CpuWritePorts {
     }
 }
 
-impl ReadPort for Cell<Option<i32>> {
+pub struct CpuWritePortsReader<'a> {
+    ports:  &'a CpuWritePorts,
+    active: instruction::Port,
+}
+
+impl<'a> CpuWritePortsReader<'a> {
+    /// Creates a new object implementing ReadPort for a specific port of CpuWritePorts
+    fn new(ports: &'a CpuWritePorts, port: instruction::Port) -> Self {
+        CpuWritePortsReader {
+            ports:  ports,
+            active: port,
+        }
+    }
+}
+
+impl<'a> ReadPort for CpuWritePortsReader<'a> {
     /// Read from the CPU's output
     ///
     /// Returns None if the port is empty
     fn read(&self) -> Option<i32> {
-        // May return None if val is already None
-        let tmp = self.get();
-        self.set(None);
-        tmp
+        self.ports.read(self.active)
     }
 }
 
@@ -142,7 +168,7 @@ impl GenericPort {
 
 #[cfg(test)]
 mod tests {
-    use super::{CpuPort, CpuWritePorts, Port};
+    use super::{CpuPort, CpuWritePorts, Port, ReadPort};
     use instruction;
 
     #[test]
@@ -161,8 +187,9 @@ mod tests {
          let ports: CpuWritePorts = Default::default();
 
          let port = ports.get_read_port(instruction::Port::Up);
-         ports.up.set(Some(1));
+         ports.write_port(instruction::Port::Up, 1);
          assert_eq!(ports.up.get(), Some(1));
          assert_eq!(port.read(), Some(1));
+         assert_eq!(port.read(), None);
     }
 }

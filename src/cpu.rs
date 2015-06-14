@@ -180,9 +180,9 @@ impl<'a> Cpu<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Cpu, CpuPorts};
+    use super::Cpu;
     use instruction;
-    use port::{CpuWritePorts, Port};
+    use port::{CpuWritePorts, Port, ReadPort};
     use parse;
 
     #[test]
