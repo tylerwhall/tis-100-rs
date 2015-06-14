@@ -5,3 +5,4 @@ authors = ["Tyler Hall <tylerwhall@gmail.com>"]
 
 [dependencies]
 regex = "0.1.8"
+ncurses = "5.73.0"
