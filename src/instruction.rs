@@ -1,3 +1,4 @@
+use std::fmt;
 use std::str::FromStr;
 
 #[derive(Debug, PartialEq)]
@@ -67,6 +68,13 @@ pub enum Port {
     Right,
     Any,
     Last,
+}
+
+impl fmt::Display for Port {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        let d = self as &fmt::Debug;
+        d.fmt(f)
+    }
 }
 
 impl FromStr for Port {
