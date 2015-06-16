@@ -1,3 +1,4 @@
+use std::fmt;
 use parse::Executable;
 use instruction;
 use instruction::{Instruction, Condition, Operand};
@@ -13,6 +14,16 @@ pub enum ExecState {
 impl Default for ExecState {
     fn default() -> Self {
         ExecState::EXEC
+    }
+}
+
+impl fmt::Display for ExecState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        f.write_str(match *self {
+            ExecState::EXEC     => "EXEC",
+            ExecState::READ(_)  => "READ",
+            ExecState::WRITE(_) => "EXEC",
+        })
     }
 }
 
