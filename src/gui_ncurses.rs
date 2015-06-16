@@ -1,5 +1,6 @@
 extern crate ncurses;
 
+use std::option::Option;
 use self::ncurses::*;
 use cpu::ExecState;
 use instruction;
@@ -98,12 +99,27 @@ pub fn gui() {
     initscr();
     refresh();
 
-    let mut cpuwin = CpuWin::new(12, 12);
-    cpuwin.refresh();
+    let left_margin = 10;
+    let inner_margin = 4;
+
+    let mut cpuwins: Vec<Vec<CpuWin>> = (0..4).map(|x| {
+        (0..3).map(|y| (x, y)).map(|(x, y)| {
+            CpuWin::new(x*(CPUWIN_WIDTH + inner_margin) + left_margin,
+                        y*(CPUWIN_HEIGHT + inner_margin/2) + left_margin/2)
+        }).collect::<Vec<_>>()
+    }).collect();
+
+    refresh();
+    getch();
+
+    for y in cpuwins.iter_mut() {
+        for cpu in y.iter_mut() {
+            cpu.refresh();
+        }
+    }
 
     getch();
 
-    drop(cpuwin);
     refresh();
     getch();
 
