@@ -29,7 +29,7 @@ impl CodeWin {
     }
 
     fn code_vec(s: &str) -> Vec<String> {
-        s.lines().map(str::to_string).collect()
+        s.lines().take(TEXT_LINES as usize).map(str::to_string).collect()
     }
 
     fn set_code(&mut self, s: &str) {
@@ -38,7 +38,7 @@ impl CodeWin {
     }
 
     fn draw_all_lines(&mut self) {
-        for i in (0..self.lines.len() as u8) {
+        for i in (0..TEXT_LINES as u8) {
             self.draw_line(i);
         }
     }
@@ -216,6 +216,8 @@ pub fn gui() {
     refresh();
 
     let mut cpuwins = create_cpu_wins();
+    let codes = ["woo", "one\ntwo\nthree"];
+    let mut codes_iter = codes.iter();
 
     loop {
         let c = getch();
@@ -227,8 +229,7 @@ pub fn gui() {
             refresh();
             cpuwins = create_cpu_wins();
         } else {
-            cpuwins[0][0].set_code("whoo");
-            refresh();
+            cpuwins[0][0].set_code(codes_iter.next().unwrap_or(&""));
         }
     }
 
