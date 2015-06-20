@@ -15,19 +15,31 @@ impl CodeWin {
     fn new(win: WINDOW, s: &str) -> Self {
         let wtext = derwin(win, TEXT_LINES, TEXT_COLS, 0, 0);
         wbkgd(wtext, '?' as u64);
-        wprintw(wtext, "hello ");
 
         let mut codewin = CodeWin {
             wtext: wtext,
-            lines: s.lines().map(str::to_string).collect(),
+            lines: Self::code_vec(s),
             line:  None,
         };
 
-        for i in (0..codewin.lines.len() as u8) {
-            codewin.draw_line(i);
-        }
         codewin.set_line(Some(1));
+        codewin.draw_all_lines();
         codewin
+    }
+
+    fn code_vec(s: &str) -> Vec<String> {
+        s.lines().map(str::to_string).collect()
+    }
+
+    fn set_code(&mut self, s: &str) {
+        self.lines = Self::code_vec(s);
+        self.draw_all_lines();
+    }
+
+    fn draw_all_lines(&mut self) {
+        for i in (0..self.lines.len() as u8) {
+            self.draw_line(i);
+        }
     }
 
     fn draw_line(&mut self, line: u8) {
@@ -48,6 +60,7 @@ impl CodeWin {
             mvwprintw(self.wtext, line, 0, s);
         }
         wattr_off(self.wtext, A_STANDOUT());
+        wrefresh(self.wtext);
     }
 
     /// Sets the active (highlighted) line
@@ -154,6 +167,14 @@ impl CpuWin {
         self.cell_val(2, &last);
         self.cell_val(3, &mode);
     }
+
+    fn set_code(&mut self, s: &str) {
+        self.codewin.set_code(s)
+    }
+
+    fn set_line(&mut self, newline: Option<u8>) {
+        self.codewin.set_line(newline)
+    }
 }
 
 impl Drop for CpuWin {
@@ -201,6 +222,9 @@ pub fn gui() {
             clear();
             refresh();
             cpuwins = create_cpu_wins();
+        } else {
+            cpuwins[0][0].set_code("whoo");
+            refresh();
         }
     }
 
