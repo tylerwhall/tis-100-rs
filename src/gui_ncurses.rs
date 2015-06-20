@@ -90,15 +90,12 @@ impl Drop for CpuWin {
         delwin(self.wsidebar);
         delwin(self.winner);
         wclear(self.win);
-        wrefresh(self.win);
+        //wrefresh(self.win);
         delwin(self.win);
     }
 }
 
-pub fn gui() {
-    initscr();
-    refresh();
-
+fn create_cpu_wins() -> Vec<Vec<CpuWin>> {
     let left_margin = 10;
     let inner_margin = 4;
 
@@ -109,19 +106,33 @@ pub fn gui() {
         }).collect::<Vec<_>>()
     }).collect();
 
-    refresh();
-    getch();
-
     for y in cpuwins.iter_mut() {
         for cpu in y.iter_mut() {
             cpu.refresh();
         }
     }
 
-    getch();
+    cpuwins
+}
 
+pub fn gui() {
+    initscr();
     refresh();
-    getch();
 
+    let mut cpuwins = create_cpu_wins();
+
+    loop {
+        let c = getch();
+        if c == b'q' as i32 {
+            break;
+        } else if c == KEY_RESIZE {
+            drop(cpuwins);
+            clear();
+            refresh();
+            cpuwins = create_cpu_wins();
+        }
+    }
+
+    drop(cpuwins);
     endwin();
 }
