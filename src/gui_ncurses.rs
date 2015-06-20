@@ -5,10 +5,77 @@ use self::ncurses::*;
 use cpu::ExecState;
 use instruction;
 
+struct CodeWin {
+    wtext:  WINDOW,
+    lines:  Vec<String>,
+    line:   Option<u8>,
+}
+
+impl CodeWin {
+    fn new(win: WINDOW, s: &str) -> Self {
+        let wtext = derwin(win, TEXT_LINES, TEXT_COLS, 0, 0);
+        wbkgd(wtext, '?' as u64);
+        wprintw(wtext, "hello ");
+
+        let mut codewin = CodeWin {
+            wtext: wtext,
+            lines: s.lines().map(str::to_string).collect(),
+            line:  None,
+        };
+
+        for i in (0..codewin.lines.len() as u8) {
+            codewin.draw_line(i);
+        }
+        codewin.set_line(Some(1));
+        codewin
+    }
+
+    fn draw_line(&mut self, line: u8) {
+        let mut max_x: i32 = 0;
+        let mut max_y: i32 = 0;
+        getmaxyx(self.wtext, &mut max_y, &mut max_x);
+
+        if self.line == Some(line) {
+            wattr_on(self.wtext, A_STANDOUT());
+        }
+
+        let line = line as i32;
+        assert!(line < max_y);
+
+        wmove(self.wtext, line, 0);
+        wclrtoeol(self.wtext);
+        if let Some(s) = self.lines.get(line as usize) {
+            mvwprintw(self.wtext, line, 0, s);
+        }
+        wattr_off(self.wtext, A_STANDOUT());
+    }
+
+    /// Sets the active (highlighted) line
+    fn set_line(&mut self, newline: Option<u8>) {
+        let oldline = self.line;
+        self.line = newline;
+
+        if let Some(old) = oldline {
+            self.draw_line(old);
+        }
+
+        if let Some(new) = newline {
+            self.draw_line(new);
+        }
+    }
+}
+
+impl Drop for CodeWin {
+    fn drop(&mut self) {
+        delwin(self.wtext);
+    }
+}
+
 struct CpuWin {
     win:        WINDOW,
     winner:     WINDOW,
     wsidebar:   WINDOW,
+    codewin:    CodeWin,
 }
 
 const SIDEBAR_CELL_HEIGHT: i32 = 2;
@@ -16,6 +83,9 @@ const SIDEBAR_WIDTH: i32 = 6;
 const CPUWIN_HEIGHT: i32 = (SIDEBAR_CELL_HEIGHT + 1) * 4 + 1;
 const CPUWIN_WIDTH: i32 = CPUWIN_HEIGHT*2 + SIDEBAR_WIDTH;
 const SIDEBAR_X: i32 = CPUWIN_WIDTH - 1 - SIDEBAR_WIDTH - 1;
+
+const TEXT_LINES: i32 = CPUWIN_HEIGHT - 2;
+const TEXT_COLS: i32 = CPUWIN_WIDTH - SIDEBAR_WIDTH - 3;
 
 impl CpuWin {
     fn new(posx: i32, posy: i32) -> CpuWin {
@@ -36,6 +106,7 @@ impl CpuWin {
             win:        win,
             winner:     winner,
             wsidebar:   wsidebar,
+            codewin:    CodeWin::new(winner, "line1\nline2\n\nline4"),
         };
         cpuwin.cell_label(0, "ACC");
         cpuwin.cell_label(1, "BAK");
