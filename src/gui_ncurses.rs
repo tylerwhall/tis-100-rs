@@ -1,6 +1,7 @@
 extern crate ncurses;
 
 use std::option::Option;
+use std::iter::FromIterator;
 use self::ncurses::*;
 use cpu::ExecState;
 use instruction;
@@ -56,8 +57,11 @@ impl CodeWin {
 
         wmove(self.wtext, line, 0);
         wclrtoeol(self.wtext);
+        wmove(self.wtext, line, 0);
         if let Some(s) = self.lines.get(line as usize) {
             mvwprintw(self.wtext, line, 0, s);
+            let pad: usize = TEXT_COLS as usize - s.len();
+            wprintw(self.wtext, &String::from_iter([' '].iter().cloned().cycle().take(pad)));
         }
         wattr_off(self.wtext, A_STANDOUT());
         wrefresh(self.wtext);
